@@ -97,7 +97,9 @@ module.exports = function (app) {
 
   plugin.start = function (options) {
     debug('Starting zones plugin with options:', options)
-    options.zones.length ? sendZonesMetaDeltas(options.zones) : debug('No paths zones configured')
+    if (options.zones && options.zones.length) {
+      sendZonesMetaDeltas(options.zones)
+    }
     unsubscribes = (options.zones || []).reduce((acc, {
       key,
       active,
