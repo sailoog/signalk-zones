@@ -97,7 +97,7 @@ module.exports = function(app) {
 
   plugin.start = function(options) {
     debug('Starting zones plugin with options:', options)
-    options.zones.length ? sendZonesMetaConfiguration(options.zones) : debug('No paths zones configured')
+    options.zones.length ? sendZonesMetaDeltas(options.zones) : debug('No paths zones configured')
     unsubscribes = (options.zones || []).reduce((acc, {
       key,
       active,
@@ -171,30 +171,30 @@ module.exports = function(app) {
     app.handleMessage(plugin.id, notificationDelta)
   }
 
-  function sendZonesMetaConfiguration(zonesEntry) {
+  function sendZonesMetaDeltas(zoneEntries) {
     const metaDelta = {
       context: "vessels." + app.selfId,
       updates:
-        zonesEntry.map(zone => {
+        zoneEntries.map(zoneEntry => {
           return {
             source: {
               label: "self.notificationhandler"
             },
             meta: [
               {
-                path: zone.key,
+                path: zoneEntry.key,
                 value: {
-                  zones: zone.zones.map(z => ({
+                  zones: zoneEntry.zones.map(z => ({
                     state: z.state,
                     lower: z.lower,
                     upper: z.upper,
                     message: z.message
                   })),
-                  nominalMethod: (zone.zones.find(z => z.state === 'nominal') || {}).method,
-                  alertMethod: (zone.zones.find(z => z.state === 'alert') || {}).method,
-                  warnMethod: (zone.zones.find(z => z.state === 'warn') || {}).method,
-                  alarmMethod: (zone.zones.find(z => z.state === 'alarm') || {}).method,
-                  emergencyMethod: (zone.zones.find(z => z.state === 'emergency') || {}).method,
+                  nominalMethod: (zoneEntry.zones.find(z => z.state === 'nominal') || {}).method,
+                  alertMethod: (zoneEntry.zones.find(z => z.state === 'alert') || {}).method,
+                  warnMethod: (zoneEntry.zones.find(z => z.state === 'warn') || {}).method,
+                  alarmMethod: (zoneEntry.zones.find(z => z.state === 'alarm') || {}).method,
+                  emergencyMethod: (zoneEntry.zones.find(z => z.state === 'emergency') || {}).method,
                 }
               }
             ]
