@@ -1,3 +1,5 @@
+"use strict"
+
 module.exports = function (app) {
 
   const debug = app.debug || (msg => { console.log(msg) })
