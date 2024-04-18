@@ -142,8 +142,7 @@ module.exports = function (app) {
       value = {
         state: zone.state,
         message: zone.message || zone.lower + ' < value < ' + zone.upper,
-        method: zone.method,
-        timestamp: (new Date()).toISOString()
+        method: zone.method
       }
     } else {
       // Default to "normal" zone
