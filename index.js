@@ -1,6 +1,6 @@
 const Bacon = require('baconjs')
 
-module.exports = function(app) {
+module.exports = function (app) {
 
   const debug = app.debug || (msg => { console.log(msg) })
   var plugin = {}
@@ -95,19 +95,19 @@ module.exports = function(app) {
     }
   }
 
-  plugin.start = function(options) {
+  plugin.start = function (options) {
     debug('Starting zones plugin with options:', options)
     options.zones.length ? sendZonesMetaDeltas(options.zones) : debug('No paths zones configured')
-    unsubscribes = (options.zones || []).reduce((acc, {
+    unsubscribes = (options.zones || []).reduce((acc, {
       key,
       active,
       zones,
     }) => {
-      if(active) {
+      if (active) {
         var stream = app.streambundle.getSelfStream(key)
         const tests = zones.map((zone, i) => {
-          if(typeof zone.upper != 'undefined') {
-            if(typeof zone.lower != 'undefined') {
+          if (typeof zone.upper != 'undefined') {
+            if (typeof zone.lower != 'undefined') {
               return value => value < zone.upper && value >= zone.lower
             } else {
               return value => value < zone.upper
@@ -130,18 +130,18 @@ module.exports = function(app) {
     return true
   }
 
-  plugin.stop = function() {
+  plugin.stop = function () {
     unsubscribes.forEach(f => f())
     unsubscribes = []
   }
 
   function sendNotificationUpdate(key, zoneIndex, zones) {
     var value = null
-    if(zoneIndex >= 0) {
+    if (zoneIndex >= 0) {
       const zone = zones[zoneIndex]
       value = {
         state: zone.state,
-        message: zone.message ||  zone.lower + ' < value < ' + zone.upper,
+        message: zone.message || zone.lower + ' < value < ' + zone.upper,
         method: zone.method,
         timestamp: (new Date()).toISOString()
       }
@@ -201,9 +201,9 @@ module.exports = function(app) {
           }
         })
     }
-  debug('Sending path metadata configuration:', JSON.stringify(metaDelta))
-  app.handleMessage(plugin.id, metaDelta)
-}
+    debug('Sending path metadata configuration:', JSON.stringify(metaDelta))
+    app.handleMessage(plugin.id, metaDelta)
+  }
 
   return plugin
 }
