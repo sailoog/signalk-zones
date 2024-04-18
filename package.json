@@ -12,7 +12,5 @@
   ],
   "author": "teppo.kurki@iki,fi",
   "license": "ISC",
-  "dependencies": {
-    "baconjs": "^0.7.88"
-  }
+  "dependencies": {}
 }
