@@ -175,31 +175,30 @@ module.exports = function (app) {
     const metaDelta = {
       context: "vessels." + app.selfId,
       updates:
-        zoneEntries.map(zoneEntry => {
-          return {
-            source: {
-              label: "self.notificationhandler"
-            },
-            meta: [
-              {
-                path: zoneEntry.key,
-                value: {
-                  zones: zoneEntry.zones.map(z => ({
-                    state: z.state,
-                    lower: z.lower,
-                    upper: z.upper,
-                    message: z.message
-                  })),
-                  nominalMethod: (zoneEntry.zones.find(z => z.state === 'nominal') || {}).method,
-                  alertMethod: (zoneEntry.zones.find(z => z.state === 'alert') || {}).method,
-                  warnMethod: (zoneEntry.zones.find(z => z.state === 'warn') || {}).method,
-                  alarmMethod: (zoneEntry.zones.find(z => z.state === 'alarm') || {}).method,
-                  emergencyMethod: (zoneEntry.zones.find(z => z.state === 'emergency') || {}).method,
-                }
+        zoneEntries.map(zoneEntry => ({
+          source: {
+            label: "self.notificationhandler"
+          },
+          meta: [
+            {
+              path: zoneEntry.key,
+              value: {
+                zones: zoneEntry.zones.map(z => ({
+                  state: z.state,
+                  lower: z.lower,
+                  upper: z.upper,
+                  message: z.message
+                })),
+                nominalMethod: (zoneEntry.zones.find(z => z.state === 'nominal') || {}).method,
+                alertMethod: (zoneEntry.zones.find(z => z.state === 'alert') || {}).method,
+                warnMethod: (zoneEntry.zones.find(z => z.state === 'warn') || {}).method,
+                alarmMethod: (zoneEntry.zones.find(z => z.state === 'alarm') || {}).method,
+                emergencyMethod: (zoneEntry.zones.find(z => z.state === 'emergency') || {}).method,
               }
-            ]
-          }
+            }
+          ]
         })
+        )
     }
     debug('Sending path metadata configuration:', JSON.stringify(metaDelta))
     app.handleMessage(plugin.id, metaDelta)
