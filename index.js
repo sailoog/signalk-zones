@@ -1,22 +1,28 @@
 const Bacon = require('baconjs')
 
 module.exports = function(app) {
+
+  const debug = app.debug || (msg => { console.log(msg) })
   var plugin = {}
   var unsubscribes = []
 
   plugin.id = "zones-edit"
   plugin.name = "Edit Zones"
-  plugin.description = "Plugin to edit zones: set ranges for gauges and different zones"
+  plugin.description = "Plugin to configure path zones and zone notification states."
 
   plugin.schema = {
+    "description": "Zones provide a series of hints to the consumer. These hints help in properly setting a range of colors on display gauges. This visual indication helps identify normal or dangerous operating conditions. Additionally, Zones emit data state notification messages.",
     type: "object",
     properties: {
       zones: {
         type: "array",
         title: " ",
         items: {
-          title: "One Signal K path with zones (zone = upper and lower limit with metadata)",
+          title: "Signal K Path",
           type: "object",
+          "required": [
+            "key"
+          ],
           properties: {
             "active": {
               title: "Active",
@@ -26,12 +32,13 @@ module.exports = function(app) {
             "key": {
               title: "Path",
               type: "string",
-              default: ""
+              default: "",
             },
             "zones": {
               "type": "array",
-              "title": " ",
-              "description": "Zones",
+              "minItems": 1,
+              "title": "Zones",
+              "description": "Each Signal K Path can define multiple Zones. If the value of a Path does not fall within one of its Zones, the default Zone, 'normal', is used. It's possible for multiple zones to share the same state, but have different ranges.",
               "items": {
                 "type": "object",
                 "title": "Zone",
@@ -41,7 +48,7 @@ module.exports = function(app) {
                     "id": "lower",
                     "type": "number",
                     "title": "Lower",
-                    "description": "The lowest value in this zone",
+                    "description": "The lowest value in this zone, based on its default unit,",
                     "name": "lower"
                   },
 
@@ -49,20 +56,22 @@ module.exports = function(app) {
                     "id": "upper",
                     "type": "number",
                     "title": "Upper",
-                    "description": "The highest value in this zone",
+                    "description": "The highest value in this zone, based on its default unit.",
                     "name": "upper"
                   },
 
                   "state": {
                     "type": "string",
-                    "title": "Alarm State",
-                    "description": "The alarm state when the value is in this zone.",
-                    "default": "normal",
-                    "enum": ["normal", "alert", "warn", "alarm", "emergency"]
+                    "title": "State",
+                    "description": "The state when the value is in this zone.",
+                    "default": "alert",
+                    "enum": ["nominal", "alert", "warn", "alarm", "emergency"]
                   },
 
                   "method": {
+                    "description": "Notification options to use when the value is in this zone.",
                     "type": "array",
+                    "maxItems": 2,
                     "items": {
                       "type": "string",
                       "enum": ["visual", "sound"]
@@ -74,7 +83,7 @@ module.exports = function(app) {
                     "id": "message",
                     "type": "string",
                     "title": "Message",
-                    "description": "The message to display for the alarm.",
+                    "description": "Custom message to display for the notification. If not set, a default message containing 'zone.lower < value < zone.upper' will be generated.",
                     "default": ""
                   }
                 }
@@ -87,6 +96,8 @@ module.exports = function(app) {
   }
 
   plugin.start = function(options) {
+    debug('Starting zones plugin with options:', options)
+    options.zones.length ? sendZonesMetaConfiguration(options.zones) : debug('No paths zones configured')
     unsubscribes = (options.zones || []).reduce((acc, {
       key,
       active,
@@ -106,8 +117,11 @@ module.exports = function(app) {
           }
         })
         acc.push(stream.map(value => {
-          return tests.findIndex(test => test(value))
+          const zoneIndex = tests.findIndex(test => test(value));
+          debug(`Value: ${value}, Zone Index: ${zoneIndex}`);
+          return zoneIndex;
         }).skipDuplicates().onValue(zoneIndex => {
+          debug(`Sending notification for key: ${key}, Zone Index: ${zoneIndex}`);
           sendNotificationUpdate(key, zoneIndex, zones)
         }))
       }
@@ -131,8 +145,15 @@ module.exports = function(app) {
         method: zone.method,
         timestamp: (new Date()).toISOString()
       }
+    } else {
+      // Default to "normal" zone
+      value = {
+        state: "normal",
+        message: "Value is within normal range",
+        method: [],
+      }
     }
-    const delta = {
+    const notificationDelta = {
       context: "vessels." + app.selfId,
       updates: [
         {
@@ -146,8 +167,43 @@ module.exports = function(app) {
         }
       ]
     }
-    app.signalk.addDelta(delta)
+    debug('Sending path zones notification:', JSON.stringify(notificationDelta))
+    app.handleMessage(plugin.id, notificationDelta)
   }
+
+  function sendZonesMetaConfiguration(zonesEntry) {
+    const metaDelta = {
+      context: "vessels." + app.selfId,
+      updates:
+        zonesEntry.map(zone => {
+          return {
+            source: {
+              label: "self.notificationhandler"
+            },
+            meta: [
+              {
+                path: zone.key,
+                value: {
+                  zones: zone.zones.map(z => ({
+                    state: z.state,
+                    lower: z.lower,
+                    upper: z.upper,
+                    message: z.message
+                  })),
+                  nominalMethod: (zone.zones.find(z => z.state === 'nominal') || {}).method,
+                  alertMethod: (zone.zones.find(z => z.state === 'alert') || {}).method,
+                  warnMethod: (zone.zones.find(z => z.state === 'warn') || {}).method,
+                  alarmMethod: (zone.zones.find(z => z.state === 'alarm') || {}).method,
+                  emergencyMethod: (zone.zones.find(z => z.state === 'emergency') || {}).method,
+                }
+              }
+            ]
+          }
+        })
+    }
+  debug('Sending path metadata configuration:', JSON.stringify(metaDelta))
+  app.handleMessage(plugin.id, metaDelta)
+}
 
   return plugin
 }
