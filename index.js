@@ -64,7 +64,7 @@ module.exports = function (app) {
                     "type": "string",
                     "title": "State",
                     "description": "The state when the value is in this zone.",
-                    "default": "alert",
+                    "default": "normal",
                     "enum": ["nominal", "normal", "alert", "warn", "alarm", "emergency"]
                   },
 
