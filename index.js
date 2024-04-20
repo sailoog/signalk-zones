@@ -191,6 +191,7 @@ module.exports = function (app) {
                   message: z.message
                 })),
                 nominalMethod: (zoneEntry.zones.find(z => z.state === 'nominal') || {}).method,
+                normalMethod: (zoneEntry.zones.find(z => z.state === 'normal') || {}).method,
                 alertMethod: (zoneEntry.zones.find(z => z.state === 'alert') || {}).method,
                 warnMethod: (zoneEntry.zones.find(z => z.state === 'warn') || {}).method,
                 alarmMethod: (zoneEntry.zones.find(z => z.state === 'alarm') || {}).method,
